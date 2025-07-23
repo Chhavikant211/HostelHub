@@ -12,15 +12,40 @@ function ResetPassword({ userType: propUserType }) {
   const { token } = useParams();
   const location = useLocation();
 
-  // ✅ Determine userType from props or URL path
-  const userType = propUserType || (location.pathname.includes('/student/') ? 'student' : 'owner');
+  // ✅ Better userType determination with more debugging
+  let userType;
+  
+  if (propUserType) {
+    userType = propUserType;
+    console.log('UserType from props:', propUserType);
+  } else if (location.pathname.includes('/reset-password-student/')) {
+    userType = 'student';
+    console.log('UserType determined from URL (student):', location.pathname);
+  } else if (location.pathname.includes('/reset-password-owner/')) {
+    userType = 'owner';
+    console.log('UserType determined from URL (owner):', location.pathname);
+  } else {
+    userType = 'owner'; // fallback
+    console.log('UserType fallback to owner. Path was:', location.pathname);
+  }
   
   // Debug: Add console.log to check userType
-  console.log('Current userType:', userType);
+  console.log('=== RESET PASSWORD DEBUG ===');
+  console.log('Final userType determined as:', userType);
   console.log('Current path:', location.pathname);
+  console.log('Props userType:', propUserType);
+  console.log('Token from params:', token);
+  console.log('================================');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // ✅ Add debugging to see actual values
+    console.log('Password values before validation:');
+    console.log('newPassword:', newPassword);
+    console.log('newPassword type:', typeof newPassword);
+    console.log('newPassword length:', newPassword?.length);
+    console.log('confirmPassword:', confirmPassword);
     
     if (newPassword !== confirmPassword) {
       Swal.fire({
@@ -52,15 +77,19 @@ function ResetPassword({ userType: propUserType }) {
       
       console.log('Using endpoint:', endpoint);
       console.log('Token:', token);
-      console.log('New password (first 3 chars):', newPassword.substring(0, 3) + '...');
       console.log('UserType determined as:', userType);
       
-      // ✅ Ensure we're sending the password as a string, not boolean
+      // ✅ Create request data object properly
       const requestData = { 
-        token: token, 
-        newPassword: String(newPassword) 
+        token: token,
+        newPassword: newPassword  // Don't convert to String(), just use the value directly
       };
-      console.log('Request data:', { ...requestData, newPassword: '***' });
+      
+      console.log('Request data being sent:');
+      console.log('- token:', requestData.token);
+      console.log('- newPassword type:', typeof requestData.newPassword);
+      console.log('- newPassword length:', requestData.newPassword?.length);
+      console.log('- newPassword first 3 chars:', requestData.newPassword?.substring(0, 3) + '...');
       
       const response = await api.post(endpoint, requestData);
       
@@ -72,15 +101,27 @@ function ResetPassword({ userType: propUserType }) {
       
       navigate(userType === 'student' ? '/student-login' : '/owner-login');
     } catch (error) {
-      console.error('Reset Error:', error);
-      console.error('Error response:', error?.response?.data);
+      console.error('Reset Error Details:');
+      console.error('- Error object:', error);
+      console.error('- Response status:', error?.response?.status);
+      console.error('- Response data:', error?.response?.data);
+      console.error('- Response headers:', error?.response?.headers);
+      console.error('- Request config:', error?.config);
+      
+      let errorMessage = 'Something went wrong. Please try again.';
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.status === 400) {
+        errorMessage = 'Invalid request. Please check your token and try again.';
+      } else if (error?.response?.status === 404) {
+        errorMessage = 'Reset token not found or expired. Please request a new password reset.';
+      }
       
       Swal.fire({
         icon: 'error',
         title: 'Reset Failed',
-        text:
-          error?.response?.data?.message ||
-          'Something went wrong. Please try again.',
+        text: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -99,6 +140,22 @@ function ResetPassword({ userType: propUserType }) {
         </p>
         
         <form onSubmit={handleSubmit}>
+          {/* 🔍 Debug info - remove this after fixing */}
+          <div style={{ 
+            background: '#f0f0f0', 
+            padding: '10px', 
+            margin: '10px 0', 
+            fontSize: '12px',
+            border: '1px solid #ccc'
+          }}>
+            <strong>DEBUG INFO:</strong><br/>
+            Current URL: {location.pathname}<br/>
+            UserType: {userType}<br/>
+            Props UserType: {propUserType}<br/>
+            Token: {token}<br/>
+            Expected endpoint: {userType === 'student' ? '/reset-password-student' : '/reset-password-owner'}
+          </div>
+          
           <div className="form-group">
             <input
               type="password"
