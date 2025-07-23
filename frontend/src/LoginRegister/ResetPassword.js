@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import api from '../api'; // ✅ Import centralized Axios instance
+import api from '../api'; // ✅ Use your centralized API instance
 import '../styles/ResetPassword.css';
 
 function ResetPassword({ userType: propUserType }) {
@@ -45,15 +45,24 @@ function ResetPassword({ userType: propUserType }) {
     setLoading(true);
     
     try {
-      // Debug: Log the endpoint being used
+      // ✅ Match your App.js routing pattern
       const endpoint = userType === 'student'
-        ? '/student/reset-password'
-        : '/owner/reset-password';
+        ? '/reset-password-student'
+        : '/reset-password-owner';
       
       console.log('Using endpoint:', endpoint);
       console.log('Token:', token);
+      console.log('New password (first 3 chars):', newPassword.substring(0, 3) + '...');
+      console.log('UserType determined as:', userType);
       
-      const response = await api.post(endpoint, { token, newPassword });
+      // ✅ Ensure we're sending the password as a string, not boolean
+      const requestData = { 
+        token: token, 
+        newPassword: String(newPassword) 
+      };
+      console.log('Request data:', { ...requestData, newPassword: '***' });
+      
+      const response = await api.post(endpoint, requestData);
       
       Swal.fire({
         icon: 'success',
