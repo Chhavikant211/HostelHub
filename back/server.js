@@ -100,6 +100,9 @@
 // });
 
 
+//main code
+
+
 
 
 
@@ -180,7 +183,8 @@ app.use(cors({
     'https://hostel-hub-git-balaji-tejas5124s-projects.vercel.app',
     'https://hostel-hub-tejas5124s-projects.vercel.app',
     'https://hostel-hub-three.vercel.app',
-    'https://hostelhub.balajimore.info'
+    'https://hostelhub.balajimore.info',
+    'http://localhost:3000'
   ],
  // replace with actual URL
   credentials: true,
@@ -436,29 +440,36 @@ app.post('/owner-login', (req, res) => {
   db.query(query, [email], (err, results) => {
     if (err) {
       console.error('Error querying database:', err);
-      return res.status(500).json({ message: 'Internal Server Error' });
+      return res.status(500).json({ message: 'Database query error', error: err.message });
     }
 
-    if (results.length === 0) {
+    if (!results || results.length === 0) {
+      console.warn('No owner found for email:', email);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const owner = results[0];
 
+    if (!owner.password) {
+      console.error('Owner record found but password is missing in DB for email:', email);
+      return res.status(500).json({ message: 'Owner record is corrupted (no password set)' });
+    }
+
     bcrypt.compare(password, owner.password, (err, isMatch) => {
       if (err) {
         console.error('Error comparing passwords:', err);
-        return res.status(500).json({ message: 'Internal Server Error' });
+        return res.status(500).json({ message: 'Password comparison error', error: err.message });
       }
 
       if (isMatch) {
-        req.session.owner = { id: owner.owner_id, email: owner.email }; // ✅ FIXED
+        req.session.owner = { id: owner.owner_id, email: owner.email };
         console.log('Login successful, session set:', req.session.owner);
         res.status(200).json({ 
           message: 'Login successful', 
           owner_id: owner.owner_id 
         });
       } else {
+        console.warn('Password mismatch for owner email:', email);
         res.status(401).json({ message: 'Invalid email or password' });
       }
     });
