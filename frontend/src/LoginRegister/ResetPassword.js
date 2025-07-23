@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import api from '../api'; // ✅ Import centralized Axios instance
 import '../styles/ResetPassword.css';
 
-function ResetPassword({ userType }) {
+function ResetPassword({ userType: propUserType }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { token } = useParams(); // Only get token from params
+  const { token } = useParams();
+  const location = useLocation();
+
+  // ✅ Determine userType from props or URL path
+  const userType = propUserType || (location.pathname.includes('/student/') ? 'student' : 'owner');
+  
+  // Debug: Add console.log to check userType
+  console.log('Current userType:', userType);
+  console.log('Current path:', location.pathname);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
     if (newPassword !== confirmPassword) {
       Swal.fire({
         icon: 'error',
@@ -23,8 +31,8 @@ function ResetPassword({ userType }) {
       return;
     }
 
-    // Password validation
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    // ✅ Fixed password validation regex
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%?&])[A-Za-z\d@$!%?&]{8,}$/;
     if (!passwordRegex.test(newPassword)) {
       Swal.fire({
         icon: 'error',
@@ -35,23 +43,29 @@ function ResetPassword({ userType }) {
     }
 
     setLoading(true);
-
+    
     try {
+      // Debug: Log the endpoint being used
       const endpoint = userType === 'student'
         ? '/student/reset-password'
         : '/owner/reset-password';
-
+      
+      console.log('Using endpoint:', endpoint);
+      console.log('Token:', token);
+      
       const response = await api.post(endpoint, { token, newPassword });
-
+      
       Swal.fire({
         icon: 'success',
         title: 'Password Reset Successful!',
         text: 'Your password has been reset. Please login with your new password.',
       });
-
+      
       navigate(userType === 'student' ? '/student-login' : '/owner-login');
     } catch (error) {
       console.error('Reset Error:', error);
+      console.error('Error response:', error?.response?.data);
+      
       Swal.fire({
         icon: 'error',
         title: 'Reset Failed',
@@ -69,7 +83,12 @@ function ResetPassword({ userType }) {
       <div className="reset-password-card">
         <h2>Reset Password</h2>
         <p>Please enter your new password below.</p>
-
+        
+        {/* Debug: Show current userType */}
+        <p style={{ fontSize: '12px', color: '#666' }}>
+          Current user type: {userType || 'undefined'}
+        </p>
+        
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <input
@@ -80,7 +99,6 @@ function ResetPassword({ userType }) {
               required
             />
           </div>
-
           <div className="form-group">
             <input
               type="password"
@@ -90,12 +108,10 @@ function ResetPassword({ userType }) {
               required
             />
           </div>
-
           <button type="submit" className="submit-button" disabled={loading}>
             {loading ? 'Resetting...' : 'Reset Password'}
           </button>
         </form>
-
         <div className="back-to-login">
           <button onClick={() => navigate(userType === 'student' ? '/student-login' : '/owner-login')}>
             Back to Login
@@ -107,7 +123,6 @@ function ResetPassword({ userType }) {
 }
 
 export default ResetPassword;
-
 
 
 
