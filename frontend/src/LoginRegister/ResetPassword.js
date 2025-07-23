@@ -12,30 +12,35 @@ function ResetPassword({ userType: propUserType }) {
   const { token } = useParams();
   const location = useLocation();
 
-  // ✅ Better userType determination with more debugging
+  // ✅ FORCE OVERRIDE - determine userType from URL directly
   let userType;
   
-  if (propUserType) {
-    userType = propUserType;
-    console.log('UserType from props:', propUserType);
-  } else if (location.pathname.includes('/reset-password-student/')) {
+  console.log('=== USERTYPE DETECTION DEBUG ===');
+  console.log('1. Props userType:', propUserType);
+  console.log('2. Current pathname:', location.pathname);
+  console.log('3. Window location:', window.location.pathname);
+  
+  // Force check the actual current URL
+  const currentPath = window.location.pathname;
+  console.log('4. Checking window.location.pathname:', currentPath);
+  
+  if (currentPath.includes('reset-password-student')) {
     userType = 'student';
-    console.log('UserType determined from URL (student):', location.pathname);
-  } else if (location.pathname.includes('/reset-password-owner/')) {
+    console.log('5. FORCED STUDENT from window.location');
+  } else if (currentPath.includes('reset-password-owner')) {
     userType = 'owner';
-    console.log('UserType determined from URL (owner):', location.pathname);
+    console.log('5. FORCED OWNER from window.location');
+  } else if (propUserType) {
+    userType = propUserType;
+    console.log('5. Using props userType:', propUserType);
   } else {
-    userType = 'owner'; // fallback
-    console.log('UserType fallback to owner. Path was:', location.pathname);
+    userType = 'student'; // Since you're testing student, default to student
+    console.log('5. DEFAULTING TO STUDENT for testing');
   }
   
-  // Debug: Add console.log to check userType
-  console.log('=== RESET PASSWORD DEBUG ===');
-  console.log('Final userType determined as:', userType);
-  console.log('Current path:', location.pathname);
-  console.log('Props userType:', propUserType);
-  console.log('Token from params:', token);
-  console.log('================================');
+  console.log('6. FINAL userType:', userType);
+  console.log('7. Will call endpoint:', userType === 'student' ? '/reset-password-student' : '/reset-password-owner');
+  console.log('===============================');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -149,11 +154,12 @@ function ResetPassword({ userType: propUserType }) {
             border: '1px solid #ccc'
           }}>
             <strong>DEBUG INFO:</strong><br/>
-            Current URL: {location.pathname}<br/>
-            UserType: {userType}<br/>
+            Window URL: {window.location.pathname}<br/>
+            React Router URL: {location.pathname}<br/>
+            UserType: <strong style={{color: userType === 'student' ? 'green' : 'red'}}>{userType}</strong><br/>
             Props UserType: {propUserType}<br/>
             Token: {token}<br/>
-            Expected endpoint: {userType === 'student' ? '/reset-password-student' : '/reset-password-owner'}
+            Expected endpoint: <strong>{userType === 'student' ? '/reset-password-student' : '/reset-password-owner'}</strong>
           </div>
           
           <div className="form-group">
